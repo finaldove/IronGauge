@@ -624,7 +624,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v48";
+const APP_VERSION = "v49";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -1248,7 +1248,11 @@ const App = {
     App.driveToken((tok)=>{
       App.driveApi("/drive/v3/files/"+id+"?alt=media", {}, tok)
         .then(r=>{ if(!r.ok) throw new Error("download "+r.status); return r.json(); })
-        .then(d=>{ App.applyBackupObject(d); state.meta.driveConnected=true; save(K.meta,state.meta);
+        .then(d=>{ App.applyBackupObject(d);
+          state.meta.driveConnected=true;
+          const newest=(state.drive.backups&&state.drive.backups[0]&&state.drive.backups[0].createdTime)?Date.parse(state.drive.backups[0].createdTime):Date.now();
+          state.meta.lastDriveBackup=Math.max(state.meta.lastDriveBackup||0, newest||0)||Date.now();
+          save(K.meta,state.meta);
           state.drive.busy=false; state.drive.restoreOpen=false; state.drive.chooser=null; render(); })
         .catch(()=>{ state.drive.busy=false; toast("Restore failed — try again"); render(); });
     });
@@ -1729,6 +1733,24 @@ function remindersCard(){
   if(!hasData) return "";
   const isIOS=/ip(hone|ad|od)/i.test((typeof navigator!=="undefined"&&navigator.userAgent)||"");
   const RECO=isIOS?7:30;
+  if(state.meta.driveConnected){
+    const clb=state.meta.lastDriveBackup||null;
+    const cdays=clb?Math.floor((Date.now()-clb)/864e5):null;
+    const cstale=(clb==null)||(cdays>=7);
+    if(!isIOS && !cstale) return "";        // Android + healthy cloud backup: nothing to say
+    let ccolor,chead,csub;
+    if(clb==null){ ccolor="var(--gold)"; chead="Cloud backup hasn't run yet"; csub="Connected, but no backup has completed — tap to run the first one."; }
+    else if(!cstale){ ccolor="var(--green)"; chead="Backed up to Drive "+(cdays===0?"today":cdays+" day"+(cdays===1?"":"s")+" ago"); csub="Backs up automatically about once a day when you open the app online."; }
+    else { ccolor="var(--red)"; chead="Cloud backup is "+cdays+" days old"; csub="Automatic backup hasn't managed to run — tap Back up, and re-sign-in if asked."; }
+    return '<section class="card stack-sm">'
+      + '<div class="label">Reminders</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
+      +   '<div class="min0"><div style="font-weight:700;font-size:14px;color:'+ccolor+'">☁ '+chead+'</div>'
+      +   '<div class="note-muted">'+csub+'</div></div>'
+      +   '<button class="btn small" style="width:auto;padding:8px 16px" onclick="App.driveBackupNow()">Back up</button></div>'
+      + '<div class="note-muted" style="font-size:11px;line-height:1.45">Your data is backed up to your own Google Drive automatically. Export (Stats tab) still works any time you want a local file copy too.</div>'
+      + '</section>';
+  }
   const lb=Math.max(state.meta.lastBackup||0, state.meta.lastDriveBackup||0)||null;
   const days=lb?Math.floor((Date.now()-lb)/864e5):null;
   const due=(lb==null)||(days>=RECO);
