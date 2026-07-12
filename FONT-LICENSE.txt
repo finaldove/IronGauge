@@ -1,0 +1,19 @@
+IronGauge — third-party font notice
+====================================
+
+display.woff is the typeface "Anton" (Regular), designed by Vernon Adams.
+
+Copyright 2020 The Anton Project Authors
+(https://github.com/googlefonts/AntonFont.git)
+
+This Font Software is licensed under the SIL Open Font License,
+Version 1.1. The license is available with a FAQ at:
+https://scripts.sil.org/OFL
+
+The full OFL 1.1 license text is included in this repository as
+OFL.txt, and is also distributed with the font's official source at
+the repository above.
+
+No other third-party font software is distributed with this app.
+The 鉄 glyph in the app icons is rasterized image output (not font
+software) and carries no font-license obligations.
