@@ -537,14 +537,35 @@ function muscleOf(exName){
 /* ---------- v6: movement kinds (lift / cardio / mobility) ---------- */
 const SCHEMA_VERSION=6;
 const CARDIOLIB=[
-  ["Zone 2 Jog","cardio"],["Run","cardio"],["Treadmill Run","cardio"],["Incline Walk","cardio"],
-  ["Cycling","cardio"],["Assault Bike","cardio"],["Rowing Machine","cardio"],["Stair Climber","cardio"],
-  ["Elliptical","cardio"],["Swimming","cardio"],["Jump Rope","cardio"],["Sprint Intervals","cardio"],
-  ["Football","cardio"],["Boxing","cardio"],["Hiking","cardio"],["Walk","cardio"],
+  // --- steady-state / machine cardio ---
+  ["Zone 2 Jog","cardio"],["Run","cardio"],["Treadmill Run","cardio"],["Trail Run","cardio"],
+  ["Incline Walk","cardio"],["Walk","cardio"],["Brisk Walk","cardio"],["Hiking","cardio"],
+  ["Cycling","cardio"],["Road Cycling","cardio"],["Spin Class","cardio"],["Stationary Bike","cardio"],
+  ["Assault Bike","cardio"],["Rowing Machine","cardio"],["Ski Erg","cardio"],
+  ["Stair Climber","cardio"],["Elliptical","cardio"],["Swimming","cardio"],["Swimming Laps","cardio"],
+  // --- intervals / conditioning ---
+  ["Jump Rope","cardio"],["Sprint Intervals","cardio"],["Hill Sprints","cardio"],["HIIT Circuit","cardio"],
+  ["Sled Push","cardio"],["Sled Drag","cardio"],["Battle Ropes","cardio"],["Burpees","cardio"],
+  ["Farmer's Carry","cardio"],["Kettlebell Swings","cardio"],["Stair Climbing","cardio"],
+  // --- combat / martial arts ---
+  ["Boxing","cardio"],["Bag Work","cardio"],["Pad Work","cardio"],["Shadow Boxing","cardio"],
+  ["Muay Thai","cardio"],["Kickboxing","cardio"],["Brazilian Jiu-Jitsu","cardio"],["Wrestling","cardio"],
+  ["Judo","cardio"],["MMA","cardio"],["Sparring","cardio"],
+  // --- sport ---
+  ["Football","cardio"],["Basketball","cardio"],["Tennis","cardio"],["Badminton","cardio"],
+  ["Squash","cardio"],["Climbing","cardio"],["Bouldering","cardio"],["Skipping","cardio"],
+  ["Dancing","cardio"],["Rollerblading","cardio"],["Rowing (Water)","cardio"],
+  // --- mobility / recovery ---
   ["Couch Stretch","mobility"],["Hip Flexor Stretch","mobility"],["Hamstring Stretch","mobility"],
-  ["Pigeon Pose","mobility"],["90/90 Hip Switch","mobility"],["Thoracic Rotation","mobility"],
-  ["Shoulder Dislocates","mobility"],["Ankle Mobility","mobility"],["Cat-Cow","mobility"],
-  ["Foam Roll","mobility"],["Deep Squat Hold","mobility"],["Hip Airplane","mobility"]
+  ["Quad Stretch","mobility"],["Calf Stretch","mobility"],["Chest Stretch","mobility"],
+  ["Shoulder Stretch","mobility"],["Pigeon Pose","mobility"],["90/90 Hip Switch","mobility"],
+  ["Thoracic Rotation","mobility"],["Shoulder Dislocates","mobility"],["Ankle Mobility","mobility"],
+  ["Cat-Cow","mobility"],["World's Greatest Stretch","mobility"],["Deep Squat Hold","mobility"],
+  ["Hip Airplane","mobility"],["Foam Roll","mobility"],["Foam Roll Quads","mobility"],
+  ["Foam Roll Back","mobility"],["Yoga","mobility"],["Yoga Flow","mobility"],["Vinyasa Yoga","mobility"],
+  ["Yin Yoga","mobility"],["Sun Salutation","mobility"],["Pilates","mobility"],["Stretching","mobility"],
+  ["Dynamic Warm-up","mobility"],["Cool-down","mobility"],["Band Pull-apart","mobility"],
+  ["Wrist Mobility","mobility"],["Neck Stretch","mobility"],["Child's Pose","mobility"]
 ].map(a=>({n:a[0],mode:a[1]}));
 const MOVE_MODE=(function(){ const m={}; EXLIB.forEach(e=>m[e.n]="lift"); CARDIOLIB.forEach(e=>m[e.n]=e.mode); return m; })();
 const MOVE_MODE_NORM=(function(){ const cnt={},last={};
@@ -701,7 +722,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v51";
+const APP_VERSION = "v52";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -2670,7 +2691,7 @@ function viewStats(){
     +   (state.statVolMode==="muscle" ? musBars + (hasOther?'<div class="note-muted">"Other" = custom or off-plan lifts with no muscle tag. Tag them when logging a custom exercise to sort them here.</div>':'') : bars)
     + '</section>'
     + progressionSection()
-    + '<section class="card stack-sm"><div class="label">Settings</div>'
+    + '<section class="card stack-sm"><div class="label" style="font-size:12px;color:var(--gold);margin-bottom:6px">Settings</div>'
     +   '<div class="label" style="margin-top:2px">Training phase</div>'
     +   '<div class="seg" style="width:100%">'
     +     [["cut","Cut"],["maintain","Maintain"],["bulk","Bulk"]].map(ph=>'<button style="flex:1;'+(currentPhase()===ph[0]?"background:var(--teal);color:var(--ink)":"")+'" onclick="App.setPhase(\''+ph[0]+'\')">'+ph[1]+'</button>').join("")
