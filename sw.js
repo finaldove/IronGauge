@@ -1,5 +1,5 @@
 /* IronGauge service worker — offline app shell cache */
-const CACHE = "irongauge-v48";
+const CACHE = "irongauge-v50";
 const ASSETS = [
   "./",
   "./index.html",
