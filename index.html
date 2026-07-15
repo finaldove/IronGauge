@@ -722,7 +722,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v52";
+const APP_VERSION = "v53";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -2691,8 +2691,7 @@ function viewStats(){
     +   (state.statVolMode==="muscle" ? musBars + (hasOther?'<div class="note-muted">"Other" = custom or off-plan lifts with no muscle tag. Tag them when logging a custom exercise to sort them here.</div>':'') : bars)
     + '</section>'
     + progressionSection()
-    + '<section class="card stack-sm"><div class="label" style="font-size:12px;color:var(--gold);margin-bottom:6px">Settings</div>'
-    +   '<div class="label" style="margin-top:2px">Training phase</div>'
+    + '<section class="card stack-sm"><div class="label" style="color:var(--gold)">Training phase</div>'
     +   '<div class="seg" style="width:100%">'
     +     [["cut","Cut"],["maintain","Maintain"],["bulk","Bulk"]].map(ph=>'<button style="flex:1;'+(currentPhase()===ph[0]?"background:var(--teal);color:var(--ink)":"")+'" onclick="App.setPhase(\''+ph[0]+'\')">'+ph[1]+'</button>').join("")
     +   '</div>'
