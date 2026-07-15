@@ -289,8 +289,8 @@ const FOODS = [
   ["Tonkatsu sauce","Sauce","tbsp",1,0.2,5,0,4,0,21],["Okonomiyaki sauce","Sauce","tbsp",1,0.2,6,0,5,0,24],
   ["Oyster sauce","Sauce","tbsp",1,1.1,4,0,2,0,20],["Dashi (stock)","Sauce","ml",200,0.6,0.6,0,0,0,5],
   ["Rice vinegar","Sauce","tbsp",1,0,0.5,0,0,0,7],["Sriracha","Sauce","tbsp",1,0.3,3,0.2,2,0,15],
-  ["Curry roux (1 block)","Sauce","block",1,1.3,9,6,1,3,103],["Honey","Sauce","tbsp",1,0,17,0,16,0,65],
-  ["Sugar","Sauce","tsp",1,0,4,0,4,0,16],
+  ["Curry roux (1 block)","Sauce","block",1,1.3,9,6,1,3,103],["Honey","Snacks & Sweets","tbsp",1,0,17,0,16,0,65],
+  ["Sugar","Snacks & Sweets","tsp",1,0,4,0,4,0,16],
   ["Sesame dressing","Sauce","tbsp",1,0.4,3.3,3.8,2,0.5,49],
   ["Bok choy (chingensai)","Veg & Fruit","g",100,0.6,2.0,0.1,0.4,0,9],
   ["Brown rice (cooked)","Carb","g",100,2.8,35.6,1.0,0.3,0.2,165],
@@ -300,6 +300,57 @@ const FOODS = [
   ["Silky Tofu","Protein","g",100,5.3,2.0,3.5,0.9,0.5,56],
   ["Soy protein isolate","Protein","g",100,88,3,1.5,1,0.3,375],
   ["Soy yogurt (homemade)","Dairy","g",100,3.6,3.4,2.2,2.5,0.3,48],
+  // ---- generic everyday range ----
+  // Protein
+  ["Chicken breast (cooked)","Protein","g",100,31,0,3.6,0,1,165],["Turkey breast","Protein","g",100,29,0,1,0,0.3,135],
+  ["Pork chop","Protein","g",100,27,0,9,0,3.2,196],["Pork mince","Protein","g",100,18,0,21,0,7.9,263],
+  ["Bacon","Protein","g",100,37,1.4,42,0,14,541],["Ham (sliced)","Protein","g",100,18,1.5,5,1,1.7,125],
+  ["Beef mince (5% fat)","Protein","g",100,21,0,5,0,2.3,137],["Beef steak (sirloin)","Protein","g",100,25,0,11,0,4.5,206],
+  ["Lamb chop","Protein","g",100,25,0,21,0,9,282],["Cod fillet","Protein","g",100,18,0,0.7,0,0.1,82],
+  ["Prawns","Protein","g",100,24,0.2,0.3,0,0.1,99],["Whole egg","Protein","egg",1,6.3,0.4,5,0.2,1.6,72],
+  ["Egg white","Protein","g",100,11,0.7,0.2,0.7,0,52],["Whey protein (scoop)","Protein","scoop",1,24,3,1.5,2,0.8,120],
+  ["Cottage cheese","Protein","g",100,11,3.4,4.3,2.7,2.7,98],["Greek yogurt (plain)","Dairy","g",100,10,3.6,0.4,3.6,0.1,59],
+  ["Canned tuna (water)","Protein","g",100,26,0,1,0,0.3,116],["Salmon fillet","Protein","g",100,20,0,13,0,3.1,208],
+  ["Lentils (cooked)","Protein","g",100,9,20,0.4,1.8,0.1,116],["Chickpeas (cooked)","Protein","g",100,9,27,2.6,4.8,0.3,164],
+  ["Black beans (cooked)","Protein","g",100,9,24,0.5,0.3,0.1,132],["Edamame","Protein","g",100,11,10,5,2.5,0.6,122],
+  // Carb
+  ["Pasta (cooked)","Carb","g",100,5,25,1.1,0.6,0.2,131],["Wholewheat pasta (cooked)","Carb","g",100,5.3,27,1.1,0.8,0.2,124],
+  ["White bread (slice)","Carb","slice",1,2.7,13,1,1.4,0.2,75],["Wholemeal bread (slice)","Carb","slice",1,3.6,12,1,1.5,0.2,72],
+  ["Bagel","Carb","bagel",1,10,53,1.7,5,0.4,257],
+  ["Potato (boiled)","Carb","g",100,2,20,0.1,0.9,0,87],["Sweet potato (baked)","Carb","g",100,2,21,0.1,6.5,0,90],
+  ["Chips / fries","Carb","g",100,3.4,41,15,0.3,2.3,312],["Quinoa (cooked)","Carb","g",100,4.4,21,1.9,0.9,0.2,120],
+  ["Couscous (cooked)","Carb","g",100,3.8,23,0.2,0,0,112],["Tortilla wrap","Carb","wrap",1,6,36,5,1.5,1.5,218],
+  ["Cornflakes","Carb","g",100,7,84,0.9,8,0.2,357],["Rice cake","Carb","cake",1,0.7,7.3,0.3,0.1,0,35],
+  ["Naan bread","Carb","piece",1,9,50,6.5,4,1.2,286],["Croissant","Carb","piece",1,5,26,12,6,7,231],
+  // Veg & Fruit
+  ["Orange","Veg & Fruit","fruit",1,1.2,15,0.2,12,0,62],["Strawberries","Veg & Fruit","g",100,0.7,7.7,0.3,4.9,0,32],
+  ["Blueberries","Veg & Fruit","g",100,0.7,14,0.3,10,0,57],
+  
+  ["Bell pepper","Veg & Fruit","g",100,1,6,0.3,4.2,0,31],["Onion","Veg & Fruit","g",100,1.1,9,0.1,4.2,0,40],
+  ["Mixed salad","Veg & Fruit","g",100,1.4,2.9,0.2,1.2,0,17],["Green beans","Veg & Fruit","g",100,1.8,7,0.2,3.3,0,31],
+  ["Mushrooms","Veg & Fruit","g",100,3.1,3.3,0.3,2,0,22],["Peas","Veg & Fruit","g",100,5.4,14,0.4,5.7,0.1,81],
+  ["Mango","Veg & Fruit","g",100,0.8,15,0.4,14,0.1,60],
+  // Dairy & alternatives
+  ["Whole milk","Dairy","ml",100,3.2,4.8,3.6,4.8,2.3,61],["Skimmed milk","Dairy","ml",100,3.4,5,0.1,5,0.1,35],
+  ["Cheddar cheese","Dairy","g",100,25,1.3,33,0.5,19,404],["Mozzarella","Dairy","g",100,22,2.2,22,1,13,300],
+  ["Oat milk","Dairy","ml",100,1,6.7,1.5,4,0.2,45],["Almond milk (unsweetened)","Dairy","ml",100,0.5,0.3,1.1,0.1,0.1,13],
+  // Fat & Nuts
+  
+  ["Cashews","Fat & Nuts","g",100,18,30,44,5.9,7.8,553],["Chia seeds","Fat & Nuts","g",100,17,42,31,0,3.3,486],
+  // Drinks
+  ["Water","Drinks","ml",100,0,0,0,0,0,0],
+  ["Beer","Drinks","ml",100,0.5,3.6,0,0,0,43],["Red wine","Drinks","ml",100,0.1,2.6,0,0.6,0,85],
+  ["Protein shake (milk+whey)","Drinks","ml",100,7,5,2,4,1,68],
+  // Snacks & Sweets
+  ["Milk chocolate","Snacks & Sweets","g",100,7.7,59,30,52,18,535],["Dark chocolate","Snacks & Sweets","g",100,7.8,46,43,24,24,598],
+  ["Potato crisps","Snacks & Sweets","g",100,6.6,53,35,0.5,3.1,536],["Biscuit (digestive)","Snacks & Sweets","biscuit",1,0.9,9.4,3,2.5,1.4,71],
+  ["Granola bar","Snacks & Sweets","bar",1,3,29,6,12,2,171],["Ice cream (vanilla)","Snacks & Sweets","g",100,3.5,24,11,21,6.8,207],
+  ["Jam","Snacks & Sweets","tbsp",1,0.1,13,0,10,0,52],["Maple syrup","Snacks & Sweets","tbsp",1,0,13,0,12,0,52],
+  // Sauce / condiments
+  ["Mustard","Sauce","tsp",1,0.2,0.3,0.2,0.1,0,3],["BBQ sauce","Sauce","tbsp",1,0.3,15,0.1,13,0,58],
+  ["Hot sauce","Sauce","tsp",1,0.1,0.1,0,0.1,0,1],["Salad dressing (ranch)","Sauce","tbsp",1,0.4,1.8,7,1.4,1.1,73],
+  ["Pesto","Sauce","tbsp",1,1.3,1,9,0.4,1.8,90],["Tomato pasta sauce","Sauce","g",100,1.6,7,1.8,5.5,0.3,49],
+  ["Salt","Sauce","g",1,0,0,0,0,0,0],
 ].map(a => ({ n:a[0], g:a[1], u:a[2], q:a[3], p:a[4], c:a[5], f:a[6], s:a[7], sa:a[8], k:a[9], na:0 }));
 /* Sodium (mg) per the food's base serving. Japanese labels list 食塩相当量 (salt g);
    sodium mg = salt g x 393. Whole foods (fresh meat, veg, fruit, plain rice, oils, nuts)
@@ -722,7 +773,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v54";
+const APP_VERSION = "v55";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
