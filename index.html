@@ -722,7 +722,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v53";
+const APP_VERSION = "v54";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -750,7 +750,7 @@ const state = {
   flog: load(K.f, []),
   blog: load(K.b, []),
   plan: (function(){ const p=load(K.p, null); return (Array.isArray(p) && p.length) ? p : makeDefaultPlan(); })(),
-  trainDay:null, trainEx:null, eatMeal:"Breakfast", eatFood:FOODS[0].n, eatMode:"list", trainMode:"list", trainCustomName:"", parseInput:"", parsed:[],
+  trainDay:null, trainEx:null, eatMeal:"Breakfast", eatFood:null, eatMode:"list", trainMode:"list", trainCustomName:"", parseInput:"", parsed:[],
   viewDate:TODAY, editFood:null, editFoodMode:"serving", editSet:null,
   expand:{plan:false, quick:false}, fixFood:null, perSet:{}, planEdit:false, planNewFood:null, planCollapsed:{}, statVolMode:"day",
   mealPrefs:{meals:"4", protein:"mixed", treat:"yes"}, mealPrefsOpen:false,
@@ -930,7 +930,7 @@ const App = {
     return ld[0].id;
   },
   currentDay(){ const ld=App.trainDays(); return ld.find(d=>d.id===state.trainDay) || ld[0]; },
-  setTrainDay(id){ state.trainDay=id; const d=App.currentDay(); const names=d?d.exercises.map(e=>e.name).filter(Boolean):[]; state.trainEx=names[0]||null; render(); },
+  setTrainDay(id){ state.trainDay=id; state.trainEx=null; App._exMatches=[]; render(); },
   logSet(){
     const d=App.currentDay(); if(!d) return;
     if((state.offKind||"lift")!=="lift"){
@@ -1184,7 +1184,7 @@ const App = {
     toast(saveIt?"Logged & saved":"Added to "+state.eatMeal); render();
   },
   delCustomFood(id){ state.customFoods=state.customFoods.filter(x=>x.id!==id); save(K.cf,state.customFoods);
-    if(!resolveFood(state.eatFood)) state.eatFood=FOODS[0].n; render(); },
+    if(!resolveFood(state.eatFood)) state.eatFood=null; render(); },
   editCustomFoodStart(id){ state.editCustomFoodId=id; render(); },
   editCustomFoodCancel(){ state.editCustomFoodId=null; render(); },
   editCustomFoodSave(id){
@@ -1200,7 +1200,7 @@ const App = {
     if(!name){ toast("Name can't be empty"); return; }
     Object.assign(cf,{n:name,k:k,p:p,c:c,f:f,s:s,sa:sat,na:na});
     save(K.cf,state.customFoods); state.editCustomFoodId=null;
-    if(!resolveFood(state.eatFood)) state.eatFood=FOODS[0].n;
+    if(!resolveFood(state.eatFood)) state.eatFood=null;
     toast("Updated \""+name+"\""); render();
   },
   deleteCustomFoodConfirm(id){
@@ -2007,7 +2007,7 @@ function viewTrain(){
   const names=day.exercises.map(e=>e.name).filter(Boolean);
   const customNames=state.customExercises.map(e=>e.n);
   const allNames=names.concat(customNames).concat(EXLIB.map(e=>e.n));
-  if(state.trainEx==null || !allNames.includes(state.trainEx)) state.trainEx=names[0]||customNames[0]||null;
+  if(state.trainEx!=null && !allNames.includes(state.trainEx)) state.trainEx=null;
   const exObj=day.exercises.find(e=>e.name===state.trainEx);
   const selectedExIsCustom=!names.includes(state.trainEx) && customNames.includes(state.trainEx);
   const hasAnyEx=EXLIB.length>0 || customNames.length>0;
@@ -2278,8 +2278,7 @@ function viewEat(){
   const today=state.flog.filter(e=>e.date===state.viewDate);
   const dayWord=state.viewDate===TODAY?"today":prettyDate(state.viewDate);
   const tot=today.reduce((a,e)=>({p:a.p+e.p,c:a.c+e.c,f:a.f+e.f,s:a.s+e.s,sa:a.sa+e.sa,k:a.k+e.k,na:a.na+(e.na||0)}),{p:0,c:0,f:0,s:0,sa:0,k:0,na:0});
-  if(!state.eatFood) state.eatFood=FOODS[0].n;
-  const fo=resolveFood(state.eatFood);
+  const fo=state.eatFood?resolveFood(state.eatFood):null;
   const selectedIsCustom = !!(fo && fo.custom);
 
   const groups=MEALS.concat(["Other"]).map(m=>({m,items:today.filter(e=>(MEALS.indexOf(e.meal)>=0?e.meal:"Other")===m)})).filter(g=>g.items.length);
@@ -2364,7 +2363,7 @@ function eatFoodCard(fo, selectedIsCustom){
     const head='<div><div class="label">Food</div>'
       +'<div class="field" style="margin-top:6px"><input id="foodPick" autocomplete="off" value="" placeholder="Search foods…" oninput="App.foodSearch(this.value)"></div>'
       +'<div id="foodResults" class="ta-box"></div>'
-      +'<div class="note-muted" style="margin-top:6px;text-transform:none;letter-spacing:0">Selected · <b style="color:var(--text)">'+esc(state.eatFood)+'</b></div>'
+      +'<div class="note-muted" style="margin-top:6px;text-transform:none;letter-spacing:0">'+(state.eatFood?'Selected · <b style="color:var(--text)">'+esc(state.eatFood)+'</b>':'Search and tap a food to select it.')+'</div>'
       +(rec.length?'<div style="margin-top:8px"><div class="label" style="margin-bottom:4px">Recent · tap to re-add</div><div class="chips">'+rec.map(n=>'<button class="chip" data-n="'+esc(n)+'" onclick="App.repeatFood(this.dataset.n)">'+esc(n)+'</button>').join("")+'</div></div>':'')
       +'</div>';
     if(fo){
@@ -2373,7 +2372,7 @@ function eatFoodCard(fo, selectedIsCustom){
         +(selectedIsCustom?'<button onclick="App.deleteCustomFoodConfirm(\''+fo.id+'\')" style="background:none;color:var(--muted);font-size:12px;text-decoration:underline;text-align:left">Remove “'+esc(fo.n)+'” from My Foods</button>':'')
         +'<button class="btn" onclick="App.addFood()">+ Add to '+state.eatMeal+'</button>';
     } else {
-      body=head+'<div style="font-size:13px;color:var(--muted);margin-top:4px">“'+esc(state.eatFood)+'” isn’t in the list. Tap <b>Custom</b> above to add it with its macros — it’ll then turn up in search.</div>';
+      body=head+(state.eatFood?'<div style="font-size:13px;color:var(--muted);margin-top:4px">“'+esc(state.eatFood)+'” isn’t in the list. Tap <b>Custom</b> above to add it with its macros — it’ll then turn up in search.</div>':'');
     }
   }
   return '<section class="card stack-sm">'+mealRow+seg+body+'</section>';
@@ -2424,7 +2423,7 @@ function viewBody(){
     + '<div class="row2"><div class="stat"><div class="label">Latest kg</div><div class="v" style="font-size:30px">'+latest+'</div></div>'
     +   '<div class="stat"><div class="label">7-day avg</div><div class="v" style="font-size:30px;color:var(--teal)">'+avg+'</div></div></div>'
     + '<section class="card stack-sm">'
-    +   '<div><div class="label">Today\'s weigh-in · kg</div><div class="field" style="margin-top:6px"><input id="kg" class="inp-num" style="font-size:20px" inputmode="decimal" placeholder="85.0" value="'+(state.blog.find(x=>x.date===TODAY)?state.blog.find(x=>x.date===TODAY).kg:"")+'"></div></div>'
+    +   '<div><div class="label">Today\'s weigh-in · kg</div><div class="field" style="margin-top:6px"><input id="kg" class="inp-num" style="font-size:20px" inputmode="decimal" placeholder="'+(state.blog.length?r1(state.blog[state.blog.length-1].kg):"70.0")+'" value="'+(state.blog.find(x=>x.date===TODAY)?state.blog.find(x=>x.date===TODAY).kg:"")+'"></div></div>'
     +   '<button class="btn" onclick="App.saveWeight()">Save today\'s weight</button>'
     +   '<div class="note-muted">Best first thing, after the toilet, before food.</div>'
     + '</section>'
