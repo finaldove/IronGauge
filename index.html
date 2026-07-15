@@ -701,7 +701,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v50";
+const APP_VERSION = "v51";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -740,6 +740,7 @@ const state = {
   pendingCustomEx: null,
   offKind: "lift",
   statEx: null,
+  goalCelebrate: false,
   drive:{ busy:false, backups:null, chooser:null, restoreOpen:false },
   customExercises: load(K.ce, []),
   profile: load(K.pr, null),
@@ -1233,7 +1234,23 @@ const App = {
   /* ---- BODY ---- */
   saveWeight(){ const v=parseFloat(document.getElementById("kg").value); if(!(v>0)){ toast("Enter your weight"); return; }
     state.blog=state.blog.filter(x=>x.date!==TODAY).concat([{date:TODAY,kg:v}]).sort((a,b)=>a.date.localeCompare(b.date));
-    save(K.b,state.blog); toast("Weight saved"); render(); },
+    save(K.b,state.blog); App.checkGoalReached(); toast("Weight saved"); render(); },
+  checkGoalReached(){
+    const p=state.profile; if(!p || !p.goalWeight) return;
+    const gw=+p.goalWeight; if(!(gw>0)) return;
+    const g=goalStats(); if(g.current==null) return;
+    // reached depends on direction: cutting hits it from above, bulking from below
+    const goingDown = p.goal!=="gain";           // "lose"/"maintain" trend down toward goal; "gain" trends up
+    const reached = goingDown ? (g.current <= gw + 0.05) : (g.current >= gw - 0.05);
+    // re-arm if the goal weight changed since we last celebrated
+    if(state.meta.goalReachedFor !== gw) state.meta.goalReachedShown=false;
+    if(reached && !state.meta.goalReachedShown){
+      state.meta.goalReachedShown=true; state.meta.goalReachedFor=gw; save(K.meta,state.meta);
+      state.goalCelebrate=true;
+    }
+  },
+  dismissGoalCelebrate(){ state.goalCelebrate=false; render(); },
+  goalCelebrateRecalc(){ state.goalCelebrate=false; App.openSetup(); },
 
   /* ---- DATA ---- */
   exportData(){
@@ -2367,7 +2384,22 @@ function viewBody(){
   const latest=sorted[0]?r1(sorted[0].kg):"—";
   let recent = sorted.length===0 ? emptyBox("No weigh-ins yet. Log today to start the trend.")
     : '<div class="stack-sm">'+sorted.slice(0,10).map(x=>'<div class="item"><div class="mono" style="font-size:12px;color:var(--muted)">'+x.date+'</div><div class="mono" style="font-size:15px;font-weight:700">'+r1(x.kg)+' kg</div></div>').join("")+'</div>';
+  const celebrate = state.goalCelebrate ? (function(){
+    const gw=state.profile&&state.profile.goalWeight?r1(+state.profile.goalWeight):"";
+    const ph=currentPhase();
+    const nextHint = ph==="cut" ? "Now you can decide: hold here at maintenance, or ease into a lean bulk. Either way your calorie needs have changed."
+      : ph==="bulk" ? "Time to decide your next move — maintain, or start a cut to reveal the work. Your targets should shift with your new weight."
+      : "Your maintenance needs shift as your weight changes — worth a fresh calculation.";
+    return '<section class="card stack-sm" style="border:1px solid var(--gold);background:linear-gradient(180deg,rgba(241,178,62,.10),transparent)">'
+      + '<div style="font-family:var(--disp);font-weight:900;font-size:20px;color:var(--gold);text-transform:uppercase;letter-spacing:.03em">🎯 Goal reached'+(gw?" · "+gw+" kg":"")+'</div>'
+      + '<div class="note-muted" style="text-transform:none;letter-spacing:0;font-size:13px;line-height:1.5">That\u2019s the target you set — well done. '+nextHint+'</div>'
+      + '<div class="row2" style="margin-top:2px"><button class="btn small" onclick="App.goalCelebrateRecalc()">Recalculate targets</button>'
+      + '<button class="btn small ghost" style="color:var(--text)" onclick="App.dismissGoalCelebrate()">Not now</button></div>'
+      + '<div class="note-muted" style="font-size:11px">You can always recalculate later in Stats → Settings.</div>'
+      + '</section>';
+  })() : "";
   return '<div class="stack">'
+    + celebrate
     + '<div class="row2"><div class="stat"><div class="label">Latest kg</div><div class="v" style="font-size:30px">'+latest+'</div></div>'
     +   '<div class="stat"><div class="label">7-day avg</div><div class="v" style="font-size:30px;color:var(--teal)">'+avg+'</div></div></div>'
     + '<section class="card stack-sm">'
