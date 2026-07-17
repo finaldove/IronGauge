@@ -773,7 +773,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v56";
+const APP_VERSION = "v57";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -2009,6 +2009,7 @@ function logMetric(s){
   return (s.weight||0)+"kg × "+s.reps;
 }
 function lastWeight(name){ for(let i=state.wlog.length-1;i>=0;i--){ if(state.wlog[i].exercise===name && isLiftEntry(state.wlog[i])) return state.wlog[i].weight; } return ""; }
+function lastReps(name){ for(let i=state.wlog.length-1;i>=0;i--){ if(state.wlog[i].exercise===name && isLiftEntry(state.wlog[i])) return state.wlog[i].reps; } return ""; }
 function firstNum(s){ const m=String(s==null?"":s).match(/\d+/); return m?m[0]:""; }
 function planExCard(day, ex){
   const today=state.wlog.filter(s=>s.date===state.viewDate);
@@ -2170,12 +2171,15 @@ function trainExCard(day, names, customNames, exObj, selectedExIsCustom, hasAnyE
   const logBtn=state.trainMode==="custom"
     ? '<button class="btn" onclick="App.logCustomSet()">+ Log set</button>'
     : '<button class="btn" style="'+(hasAnyEx?'':'opacity:.5')+'" onclick="App.logSet()">+ Log set</button>';
-  const offlw=(state.trainMode!=="custom" && state.trainEx)?lastWeight(state.trainEx):"";
-  const offwph=offlw!==""?String(offlw):"0";
+  const offName = state.trainMode==="custom" ? (state.trainCustomName||"").trim() : state.trainEx;
+  const offlw = offName ? lastWeight(offName) : "";
+  const offwph = offlw!=="" ? String(offlw) : "0";
+  const offlr = offName ? lastReps(offName) : "";
+  const offrph = offlr!=="" ? String(offlr) : "8";
   const metrics = ok==="lift"
     ? '<div class="row2">'
       +'<div><div class="label">Weight · kg</div><div class="field" style="margin-top:6px"><input id="tw" class="inp-num" inputmode="decimal" placeholder="'+offwph+'"></div></div>'
-      +'<div><div class="label">Reps</div><div class="field" style="margin-top:6px"><input id="tr" class="inp-num" inputmode="numeric" placeholder="8"></div></div>'
+      +'<div><div class="label">Reps</div><div class="field" style="margin-top:6px"><input id="tr" class="inp-num" inputmode="numeric" placeholder="'+offrph+'"></div></div>'
       +'</div>'
     : '<div class="row2">'
       +'<div><div class="label">Minutes</div><div class="field" style="margin-top:6px"><input id="cdDur" class="inp-num" inputmode="decimal" placeholder="20"></div></div>'
