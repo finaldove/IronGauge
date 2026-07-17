@@ -773,7 +773,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v57";
+const APP_VERSION = "v59";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -2008,8 +2008,29 @@ function logMetric(s){
   }
   return (s.weight||0)+"kg × "+s.reps;
 }
-function lastWeight(name){ for(let i=state.wlog.length-1;i>=0;i--){ if(state.wlog[i].exercise===name && isLiftEntry(state.wlog[i])) return state.wlog[i].weight; } return ""; }
-function lastReps(name){ for(let i=state.wlog.length-1;i>=0;i--){ if(state.wlog[i].exercise===name && isLiftEntry(state.wlog[i])) return state.wlog[i].reps; } return ""; }
+function lastLiftEntry(name){
+  // exact match first
+  for(let i=state.wlog.length-1;i>=0;i--){ const s=state.wlog[i]; if(s.exercise===name && isLiftEntry(s)) return s; }
+  // normalized fallback: catches trivial spelling/plural variants (not distinct exercises)
+  const nk=exNormKey(name); if(!nk) return null;
+  for(let i=state.wlog.length-1;i>=0;i--){ const s=state.wlog[i]; if(isLiftEntry(s) && exNormKey(s.exercise)===nk) return s; }
+  return null;
+}
+function lastWeight(name){ const s=lastLiftEntry(name); return s?s.weight:""; }
+function lastReps(name){ const s=lastLiftEntry(name); return s?s.reps:""; }
+function offHistoryLine(name){
+  // show the most recent session's sets for this exercise, matching the plan card
+  const nk=exNormKey(name);
+  let day=null;
+  for(let i=state.wlog.length-1;i>=0;i--){ const s=state.wlog[i];
+    if(isLiftEntry(s) && (s.exercise===name || (nk && exNormKey(s.exercise)===nk))){ day=s.date; break; } }
+  if(!day) return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--muted)">No history yet — log your first set.</div>';
+  const sets=state.wlog.filter(s=>s.date===day && isLiftEntry(s) && (s.exercise===name || (nk && exNormKey(s.exercise)===nk)));
+  const w=sets.length?Math.max.apply(null,sets.map(s=>+s.weight||0)):0;
+  const reps=sets.map(s=>s.reps).join(", ");
+  const wStr=w>0?r1(w)+"kg":"bodyweight";
+  return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--gold)">Last: '+wStr+' × '+esc(reps)+'</div>';
+}
 function firstNum(s){ const m=String(s==null?"":s).match(/\d+/); return m?m[0]:""; }
 function planExCard(day, ex){
   const today=state.wlog.filter(s=>s.date===state.viewDate);
@@ -2139,6 +2160,7 @@ function trainExCard(day, names, customNames, exObj, selectedExIsCustom, hasAnyE
   let exPart;
   if(state.trainMode==="custom"){
     exPart='<div class="field" style="margin-top:6px"><input id="cExName" value="'+esc(state.trainCustomName||"")+'" placeholder="e.g. Cable Crossover" oninput="App.setTrainCustomName(this.value)"></div>'
+      +((state.trainCustomName||"").trim() && (state.offKind||"lift")==="lift" ? offHistoryLine((state.trainCustomName||"").trim()) : "")
       +((state.offKind||"lift")==="lift"
         ? '<div style="margin-top:8px"><div class="label">Target muscle <span style="color:var(--muted);font-weight:400">(optional)</span></div>'
           +'<div class="field" style="margin-top:4px"><select id="cExMuscle">'
@@ -2164,6 +2186,7 @@ function trainExCard(day, names, customNames, exObj, selectedExIsCustom, hasAnyE
       ? '<div class="field" style="margin-top:6px"><input id="exPick" autocomplete="off" value="" placeholder="Search exercises…" oninput="App.exSearch(this.value)"></div>'
         +'<div id="exResults" class="ta-box"></div>'
         +'<div class="note-muted" style="margin-top:6px;text-transform:none;letter-spacing:0">Selected · <b style="color:var(--text)">'+esc(state.trainEx||"—")+'</b></div>'
+        +(state.trainEx && ok==="lift" ? offHistoryLine(state.trainEx) : "")
         +(exObj?'<div class="hint">Target · '+esc(exObj.sets)+' × '+esc(exObj.reps)+'</div>':'')
         +(selectedExIsCustom?'<button onclick="App.delCustomExercise(\''+cid+'\')" style="background:none;color:var(--muted);font-size:12px;text-decoration:underline;text-align:left;margin-top:6px">Remove “'+esc(state.trainEx)+'” from My Exercises</button>':'')
       : '<div style="color:var(--muted);font-size:14px;margin-top:6px">No exercises here — add them in Plan, or use Custom above.</div>';
