@@ -677,7 +677,9 @@ function progressLine(ex){
   const pc=progressCheck(ex);
   if(!pc){ return kindOfEx(ex)==="lift" && ex.name ? '<div class="note-muted">No history yet — log your first set.</div>' : ""; }
   const wStr = pc.topW>0 ? (r1(pc.topW)+"kg") : "bodyweight";
-  const reps = pc.last.sets.map(x=>x.reps).join(", ");
+  // only the reps performed AT the top weight of the last session (not every set's reps)
+  const repsAtTop = pc.last.sets.filter(x=>(+x.weight||0)===pc.topW).map(x=>x.reps);
+  const reps = repsAtTop.join(", ");
   let col="var(--muted)", tail=" · repeat "+wStr;
   if(pc.ready){ col="var(--green)"; tail=" · ready to go up — "+pc.streak+" session"+(pc.streak===1?"":"s")+" at "+wStr; }
   else if(pc.hitTop){ col="var(--gold)"; tail=" · top of range hit"; }
@@ -773,7 +775,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v59";
+const APP_VERSION = "v60";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -2018,18 +2020,21 @@ function lastLiftEntry(name){
 }
 function lastWeight(name){ const s=lastLiftEntry(name); return s?s.weight:""; }
 function lastReps(name){ const s=lastLiftEntry(name); return s?s.reps:""; }
-function offHistoryLine(name){
-  // show the most recent session's sets for this exercise, matching the plan card
+function bestSet(name){
+  // heaviest weight lifted for this exercise, and the most reps achieved at that weight — a PR cue
   const nk=exNormKey(name);
-  let day=null;
-  for(let i=state.wlog.length-1;i>=0;i--){ const s=state.wlog[i];
-    if(isLiftEntry(s) && (s.exercise===name || (nk && exNormKey(s.exercise)===nk))){ day=s.date; break; } }
-  if(!day) return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--muted)">No history yet — log your first set.</div>';
-  const sets=state.wlog.filter(s=>s.date===day && isLiftEntry(s) && (s.exercise===name || (nk && exNormKey(s.exercise)===nk)));
-  const w=sets.length?Math.max.apply(null,sets.map(s=>+s.weight||0)):0;
-  const reps=sets.map(s=>s.reps).join(", ");
-  const wStr=w>0?r1(w)+"kg":"bodyweight";
-  return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--gold)">Last: '+wStr+' × '+esc(reps)+'</div>';
+  const sets=state.wlog.filter(s=>isLiftEntry(s) && (s.exercise===name || (nk && exNormKey(s.exercise)===nk)));
+  if(!sets.length) return null;
+  const topW=Math.max.apply(null,sets.map(s=>+s.weight||0));
+  const repsAtTop=sets.filter(s=>(+s.weight||0)===topW).map(s=>+s.reps||0);
+  const bestReps=repsAtTop.length?Math.max.apply(null,repsAtTop):0;
+  return { w:topW, reps:bestReps };
+}
+function offHistoryLine(name){
+  const b=bestSet(name);
+  if(!b) return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--muted)">No history yet — log your first set.</div>';
+  const wStr = b.w>0 ? r1(b.w)+"kg" : "bodyweight";
+  return '<div class="note-muted" style="text-transform:none;letter-spacing:0;color:var(--gold)">Best: '+wStr+' × '+b.reps+'</div>';
 }
 function firstNum(s){ const m=String(s==null?"":s).match(/\d+/); return m?m[0]:""; }
 function planExCard(day, ex){
