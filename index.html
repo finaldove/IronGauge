@@ -641,6 +641,7 @@ function migrateSchema(d){
   if(Array.isArray(d.workoutLog)) d.workoutLog.forEach(x=>{ if(!x.kind) x.kind="lift"; });
   if(Array.isArray(d.customExercises)) d.customExercises.forEach(c=>{ if(!c.kind) c.kind="lift"; });
   if(d.profile && typeof d.profile==="object" && !d.profile.phase) d.profile.phase="cut";
+  if(d.profile && typeof d.profile==="object" && !d.profile.macroSource) d.profile.macroSource="auto";
   d.version=SCHEMA_VERSION;
   return d;
 }
@@ -775,7 +776,7 @@ function makeDefaultPlan(){ return []; }
 
 /* ============================== STORAGE ============================== */
 const K = { w:"il.workoutLog", f:"il.foodLog", b:"il.weightLog", p:"il.trainingPlan", cf:"il.customFoods", ce:"il.customExercises", pr:"il.profile", mp:"il.mealPlan", mpl:"il.mealPlans", meta:"il.meta" };
-const APP_VERSION = "v60";
+const APP_VERSION = "v61";
 const GOOGLE_CLIENT_ID = "623652689059-l7um37s7moqhnlonnt0boja11agjiuf4.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const DRIVE_KEEP = 5;
@@ -826,7 +827,17 @@ const state = {
 };
 save(K.p, state.plan); // lock in default on first run
 
-function applyTargets(){ const t=(state.profile && state.profile.targets) ? state.profile.targets : DEFAULT_TARGETS; TARGETS = Object.assign({}, DEFAULT_TARGETS, t); }
+function applyTargets(){
+  const pr=state.profile;
+  if(pr && pr.macroSource==="custom" && pr.customTargets){
+    const ct=pr.customTargets, out={};
+    Object.keys(DEFAULT_TARGETS).forEach(k=>{ const v=ct[k]; out[k] = (v===""||v==null) ? DEFAULT_TARGETS[k] : +v; });
+    if(!(out.k>0)) out.k = Math.round(out.p*4 + out.c*4 + out.f*9);
+    TARGETS = Object.assign({}, DEFAULT_TARGETS, out);
+    return;
+  }
+  const t=(pr && pr.targets) ? pr.targets : DEFAULT_TARGETS; TARGETS = Object.assign({}, DEFAULT_TARGETS, t);
+}
 applyTargets();
 (function(){ const box={ trainingPlan:state.plan, workoutLog:state.wlog, customExercises:state.customExercises, profile:state.profile };
   const before=JSON.stringify([state.plan,state.wlog,state.customExercises,state.profile]);
@@ -882,8 +893,9 @@ const App = {
     const d=state.setupData; if(!(+d.age>0)||!(+d.height>0)||!(+d.weight>0)){ toast("Enter age, height & weight"); return; }
     state.setupPreview=computeTargets(d); render(); },
   saveSetup(){ if(!state.setupPreview){ App.calcSetup(); if(!state.setupPreview) return; }
-    const d=state.setupData;
-    state.profile={ sex:d.sex, age:+d.age, height:+d.height, weight:+d.weight, activity:d.activity, goal:d.goal, goalWeight:(+d.goalWeight>0?+d.goalWeight:null), targets:state.setupPreview, onboarded:true };
+    const d=state.setupData; const prev=state.profile||{};
+    state.profile={ sex:d.sex, age:+d.age, height:+d.height, weight:+d.weight, activity:d.activity, goal:d.goal, goalWeight:(+d.goalWeight>0?+d.goalWeight:null), targets:state.setupPreview, onboarded:true,
+      phase: prev.phase||"cut", macroSource:"auto", customTargets: prev.customTargets };
     save(K.pr,state.profile); applyTargets();
     if(state.blog.length===0 && +d.weight>0){ state.blog.push({id:uid(),date:TODAY,kg:+d.weight}); save(K.b,state.blog); }
     state.setupOpen=false; state.setupPreview=null; toast("Targets saved"); render(); },
@@ -1079,6 +1091,41 @@ const App = {
   setPhase(ph){
     if(!state.profile) state.profile={ onboarded:true, targets:DEFAULT_TARGETS };
     state.profile.phase=ph; save(K.pr,state.profile); toast("Phase: "+ph); render();
+  },
+  setMacroSource(src){
+    if(!state.profile) state.profile={ onboarded:true, targets:Object.assign({},TARGETS) };
+    if(src==="custom"){
+      // seed the custom fields from whatever targets are currently showing
+      state.profile.customTargets = Object.assign({}, TARGETS, state.profile.customTargets||{});
+      state.profile.macroSource="custom";
+      applyTargets();
+      toast("Custom macros on");
+    } else {
+      state.profile.macroSource="auto";
+      applyTargets();
+      toast("Using calculated macros");
+    }
+    save(K.pr,state.profile); render();
+  },
+  setCustomMacro(key,v){
+    if(!state.profile) return;
+    state.profile.customTargets = state.profile.customTargets || Object.assign({}, TARGETS);
+    const n = v===""||v==null ? "" : Math.max(0, parseFloat(v)||0);
+    state.profile.customTargets[key] = n;
+    // auto-calc calories from P/C/F when kcal left blank
+    const ct=state.profile.customTargets;
+    if(key!=="k" && (ct.k===""||ct.k==null)){ /* leave blank; resolved on save */ }
+    save(K.pr,state.profile); applyTargets();
+    // don't full re-render on every keystroke (keeps input focus); numbers refresh on blur/next render
+  },
+  saveCustomMacros(){
+    if(!state.profile || !state.profile.customTargets) return;
+    const ct=state.profile.customTargets;
+    ["p","c","f"].forEach(k=>{ if(ct[k]===""||ct[k]==null) ct[k]=0; });
+    if(ct.k===""||ct.k==null || +ct.k<=0){ ct.k = Math.round((+ct.p*4 + +ct.c*4 + +ct.f*9)); }
+    ["s","sa","na"].forEach(k=>{ if(ct[k]===""||ct[k]==null) ct[k]=DEFAULT_TARGETS[k]; });
+    state.profile.macroSource="custom";
+    save(K.pr,state.profile); applyTargets(); toast("Custom macros saved"); render();
   },
   setStatEx(nm){ state.statEx=nm; render(); },
   resolvePendingCustom(useSuggested){
@@ -1324,7 +1371,11 @@ const App = {
     }
   },
   dismissGoalCelebrate(){ state.goalCelebrate=false; render(); },
-  goalCelebrateRecalc(){ state.goalCelebrate=false; App.openSetup(); },
+  goalCelebrateRecalc(){ state.goalCelebrate=false;
+    if(state.profile && state.profile.macroSource==="custom"){
+      if(!confirm("You're using custom macros. Recalculating will switch back to calculated targets and replace them. Continue?")){ render(); return; }
+    }
+    App.openSetup(); },
 
   /* ---- DATA ---- */
   exportData(){
@@ -2778,9 +2829,22 @@ function viewStats(){
     +     [["cut","Cut"],["maintain","Maintain"],["bulk","Bulk"]].map(ph=>'<button style="flex:1;'+(currentPhase()===ph[0]?"background:var(--teal);color:var(--ink)":"")+'" onclick="App.setPhase(\''+ph[0]+'\')">'+ph[1]+'</button>').join("")
     +   '</div>'
     +   '<div class="note-muted">Phase changes how stalled lifts are read — holding strength in a deficit is expected, not a plateau.</div>'
-    +   '<div class="note-muted" style="margin-top:8px">Targets · '+TARGETS.k+' kcal · '+TARGETS.p+'P / '+TARGETS.c+'C / '+TARGETS.f+'F</div>'
-    +   '<button class="btn ghost small" style="color:var(--text)" onclick="App.openSetup()">'+(state.profile?'Recalculate targets':'Set up targets')+'</button>'
-    +   '<div style="height:1px;background:var(--line);margin:6px 0"></div>'
+    +   '<div style="height:1px;background:var(--line);margin:8px 0"></div>'
+    +   '<div class="label" style="color:var(--gold)">Macro targets</div>'
+    +   '<div class="seg" style="width:100%;margin-top:4px">'
+    +     [["auto","Calculated"],["custom","Custom"]].map(ms=>'<button style="flex:1;'+(((state.profile&&state.profile.macroSource)==="custom"?"custom":"auto")===ms[0]?"background:var(--teal);color:var(--ink)":"")+'" onclick="App.setMacroSource(\''+ms[0]+'\')">'+ms[1]+'</button>').join("")
+    +   '</div>'
+    +   ((state.profile&&state.profile.macroSource==="custom")
+        ? (function(){ const ct=(state.profile.customTargets)||TARGETS; const fld=(k,lab,unit)=>'<div><div class="label">'+lab+'</div><div class="field" style="margin-top:4px"><input class="inp-num" inputmode="decimal" value="'+esc(String(ct[k]==null?"":ct[k]))+'" oninput="App.setCustomMacro(\''+k+'\',this.value)"></div></div>';
+            return '<div class="row2" style="margin-top:8px">'+fld("p","Protein g")+fld("c","Carbs g")+'</div>'
+              +'<div class="row2" style="margin-top:6px">'+fld("f","Fat g")+fld("k","Calories")+'</div>'
+              +'<div class="row2" style="margin-top:6px">'+fld("s","Sugar g")+fld("sa","Sat fat g")+'</div>'
+              +'<div style="margin-top:6px">'+fld("na","Sodium mg")+'</div>'
+              +'<div class="note-muted" style="margin-top:6px;text-transform:none;letter-spacing:0;font-size:11px">Leave calories blank to auto-calc from protein/carbs/fat. Your numbers stay put — recalculating won\u2019t touch them unless you switch back to Calculated.</div>'
+              +'<button class="btn small" style="margin-top:8px" onclick="App.saveCustomMacros()">Save custom macros</button>'; })()
+        : '<div class="note-muted" style="margin-top:6px">Computed from your stats and goal. Targets · '+TARGETS.k+' kcal · '+TARGETS.p+'P / '+TARGETS.c+'C / '+TARGETS.f+'F</div>'
+          +'<button class="btn ghost small" style="color:var(--text);margin-top:6px" onclick="App.openSetup()">'+(state.profile?'Recalculate targets':'Set up targets')+'</button>')
+    +   '<div style="height:1px;background:var(--line);margin:8px 0"></div>'
     +   driveSettingsBlock()
     +   '<div class="note-muted">Backup file — save a copy of all your data to a file, or restore one. Works fully offline.</div>'
     +   '<div class="row2"><button class="btn small" style="width:100%" onclick="App.exportData()">Export</button>'
